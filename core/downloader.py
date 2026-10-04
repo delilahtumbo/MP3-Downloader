@@ -2,6 +2,7 @@ import os
 import shutil
 from pathlib import Path
 
+from PySide6.QtCore import QObject, Signal
 import yt_dlp
 
 
@@ -11,12 +12,14 @@ def ffmpeg_available():
 
 class DownloadTask:
     def __init__(self, url: str, output_path: str, audio_only: bool = True,
-                 audio_format: str = "mp3", audio_quality: str = "192"):
+                 audio_format: str = "mp3", audio_quality: str = "192",
+                 playlist: bool = False):
         self.url = url
         self.output_path = str(output_path)
         self.audio_only = audio_only
         self.audio_format = audio_format
         self.audio_quality = str(audio_quality)
+        self.playlist = playlist
         self.status = "pending"
         self.progress = 0
         self.error = None
@@ -39,7 +42,7 @@ class DownloadTask:
                 "outtmpl": os.path.join(self.output_path, "%(title)s.%(ext)s"),
                 "quiet": False,
                 "no_warnings": False,
-                "noplaylist": False,
+                "noplaylist": not self.playlist,
                 "progress_hooks": [self._progress_hook] if progress_callback else [],
             }
 
@@ -94,21 +97,3 @@ class DownloadWorker(QObject):
 
     def _on_progress(self, value):
         self.progress.emit(value)
-
-
-class DownloadQueue:
-    def __init__(self):
-        self.tasks = []
-
-    def add_task(self, task):
-        self.tasks.append(task)
-
-    def remove_task(self, index):
-        if 0 <= index < len(self.tasks):
-            self.tasks.pop(index)
-
-    def clear_queue(self):
-        self.tasks.clear()
-
-    def get_queue(self):
-        return self.tasks
