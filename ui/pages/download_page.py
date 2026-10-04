@@ -89,7 +89,12 @@ class DownloadPage(QWidget):
         task = self.get_task()
         if not task:
             return
-        self.parent.show_info("Download Started", f"Downloading: {task.url}\n\nSaved to: {task.output_path}")
+
+        success = task.execute()
+        if success:
+            self.parent.show_info("Download Complete", f"Your file was downloaded successfully to:\n{task.output_path}")
+        else:
+            self.parent.show_warning("Download Failed", task.error or "Unknown download error.")
 
     def add_to_queue(self):
         task = self.get_task()
