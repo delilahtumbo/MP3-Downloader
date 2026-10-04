@@ -6,3 +6,8 @@ venv/
 *.pyd
 .DS_Store
 downloads/
+data/
+.env
+*.exe
+*.dmg
+*.AppImage
