@@ -64,16 +64,7 @@ class QueuePage(QWidget):
         if not self.parent.download_queue:
             self.parent.show_warning("Empty Queue", "No downloads are queued.")
             return
-
-        for task in list(self.parent.download_queue):
-            success = task.execute()
-            if success:
-                self.parent.show_info("Queue Update", f"Downloaded: {task.url}")
-            else:
-                self.parent.show_warning("Queue Error", task.error or "Unknown queue error.")
-
-        self.parent.download_queue.clear()
-        self.refresh_queue()
+        self.parent.process_queue()
 
     def remove_selected(self):
         row = self.queue_table.currentRow()

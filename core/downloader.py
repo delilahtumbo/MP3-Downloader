@@ -1,23 +1,36 @@
 import os
+import shutil
 from pathlib import Path
 
 import yt_dlp
+
+
+def ffmpeg_available():
+    return shutil.which("ffmpeg") is not None or bool(os.environ.get("FFMPEG_PATH"))
 
 
 class DownloadTask:
     def __init__(self, url: str, output_path: str, audio_only: bool = True,
                  audio_format: str = "mp3", audio_quality: str = "192"):
         self.url = url
-        self.output_path = output_path
+        self.output_path = str(output_path)
         self.audio_only = audio_only
         self.audio_format = audio_format
-        self.audio_quality = audio_quality
+        self.audio_quality = str(audio_quality)
         self.status = "pending"
         self.progress = 0
         self.error = None
+        self._from_queue = False
 
     def execute(self, progress_callback=None):
         try:
+            if self.audio_only and not ffmpeg_available():
+                self.status = "error"
+                self.error = (
+                    "FFmpeg was not found. Please install FFmpeg and make sure it is on your PATH."
+                )
+                return False
+
             self.status = "downloading"
             Path(self.output_path).mkdir(parents=True, exist_ok=True)
 
@@ -58,6 +71,29 @@ class DownloadTask:
                 self.progress = int((downloaded / total) * 100)
                 if self.progress_callback:
                     self.progress_callback(self.progress)
+
+
+class DownloadWorker(QObject):
+    progress = Signal(int)
+    finished = Signal(object)
+    error = Signal(str)
+
+    def __init__(self, task):
+        super().__init__()
+        self.task = task
+
+    def run(self):
+        try:
+            success = self.task.execute(progress_callback=self._on_progress)
+            if success:
+                self.finished.emit(self.task)
+            else:
+                self.error.emit(self.task.error or "Download failed.")
+        except Exception as exc:
+            self.error.emit(str(exc))
+
+    def _on_progress(self, value):
+        self.progress.emit(value)
 
 
 class DownloadQueue:
