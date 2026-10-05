@@ -1,7 +1,7 @@
 # MP3 Downloader
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/delilahtumbo/MP3-Downloader/main/assets/banner.png" alt="MP3 Downloader Logo" width="650" onerror="this.style.display='none'" />
+  <img src="https://raw.githubusercontent.com/delilahtumbo/MP3-Downloader/main/assets/banner.png" alt="MP3 Downloader Banner" width="650" onerror="this.style.display='none'" />
 
   <h3>Modern MP3 downloader with a clean desktop experience</h3>
 
@@ -13,12 +13,12 @@
 
 ## 🎯 Overview
 
-MP3 Downloader is a desktop application designed for downloading audio from supported online sources in a clean, streamlined, and user-friendly way. It is inspired by the polished experience of YoutubeGO, while using a Papua New Guinea-inspired visual palette: red, gold, black, and white.
+MP3 Downloader is a lightweight desktop app for downloading MP3 audio from supported sources with a clean, beginner-friendly workflow. It blends a modern interface with a Papua New Guinea-inspired palette — red, gold, black, and white — to create a crisp, premium look.
 
-This project focuses on simplicity and speed — download audio, queue multiple jobs, choose format/quality, and save files to your preferred folder without unnecessary complexity.
+This project is inspired by the polished user experience of YoutubeGO, but focused specifically on MP3 downloads, queue management, and easy media collection.
 
 ## 📋 Table of Contents
-- [Features](#-key-features)
+- [Key Features](#-key-features)
 - [Papua New Guinea Color Palette](#-papua-new-guinea-color-palette)
 - [Requirements](#-requirements)
 - [Installation](#-installation)
@@ -28,23 +28,23 @@ This project focuses on simplicity and speed — download audio, queue multiple 
 
 ## 🌟 Key Features
 
-### Core Features
+### 🛠️ Core Features
 - Download MP3 audio from supported URLs
-- Add multiple downloads to a queue
+- Queue multiple downloads and manage them in sequence
 - Select a default audio format and quality
-- Choose a custom download folder
+- Choose a custom destination folder for saved files
 - Toggle between dark and light themes
 - Desktop UI built with PySide6
 
-### User Experience
+### ✨ User Experience
 - Clean, modern interface inspired by YoutubeGO
-- Easy-to-use workflow for downloading and organizing audio files
-- Lightweight configuration with minimal setup
-- Designed for a smooth local desktop experience
+- Straightforward workflow for downloading and organizing audio
+- Simple settings for format, quality, and save location
+- Comfortable desktop experience with a polished visual style
 
 ## 🎨 Papua New Guinea Color Palette
 
-The app uses a scheme inspired by the Papua New Guinea flag:
+The app uses a palette inspired by the Papua New Guinea flag:
 
 - Red: `#CE1126`
 - Gold: `#FCD116`
@@ -53,7 +53,7 @@ The app uses a scheme inspired by the Papua New Guinea flag:
 
 ## ⚙️ Requirements
 
-Before you begin, make sure the following are installed:
+Make sure the following are installed before running the app:
 
 - Python 3.10+
 - FFmpeg installed and available on your `PATH`
@@ -76,22 +76,22 @@ pip install -r requirements.txt
 python main.py
 ```
 
-## 🛠️ Usage Tips
+## 🧭 Usage Tips
 
-- Paste a supported URL into the app and begin the download
-- Use the queue to manage multiple downloads efficiently
-- Choose the output folder you want to save to
-- Set your preferred default audio format and quality
-- Switch themes anytime from the application settings
+- Paste a supported URL into the app
+- Add multiple files to the queue for batch downloading
+- Set your preferred output folder before downloading
+- Choose the default format and quality that fit your needs
+- Switch themes anytime from the UI
 
 ## 🤝 Related Project
 
 - [Efeckc17/YoutubeGO](https://github.com/Efeckc17/YoutubeGO)
 
-This project was inspired by the clean and modern user experience of YoutubeGO, while adapting it toward a focused MP3-only download workflow.
+This project was inspired by the clean, modern user experience of YoutubeGO while adapting it to a more focused MP3-only downloader.
 
 ---
 
 <div align="center">
-  <sub>Built with ❤️ for simple, fast MP3 downloads.</sub>
+  <sub>Built with ❤️ for simple, fast, and elegant MP3 downloads.</sub>
 </div>
