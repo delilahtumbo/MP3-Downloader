@@ -1,22 +1,16 @@
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
-    QCheckBox,
-    QComboBox,
-    QFormLayout,
-    QGroupBox,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
     QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
 
-from core.downloader import DownloadTask
 
-
-class DownloadPage(QWidget):
+class QueuePage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
@@ -27,83 +21,59 @@ class DownloadPage(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(18)
 
-        title = QLabel("Download Audio")
-        title.setFont(QFont("Arial", 18, QFont.Bold))
+        title = QLabel("Download Queue")
+        title.setFont(self.parent.font())
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
 
-        form_group = QGroupBox("Create Download")
-        form_layout = QFormLayout(form_group)
-
-        self.url_input = QLineEdit()
-        self.url_input.setPlaceholderText("Paste a video or audio URL here")
-        self.url_input.setMinimumHeight(42)
-        form_layout.addRow("URL:", self.url_input)
-
-        self.format_combo = QComboBox()
-        self.format_combo.addItems(["mp3", "m4a", "wav", "aac", "flac", "opus", "vorbis"])
-        self.format_combo.setCurrentText(self.parent.user_profile.get_audio_format())
-        form_layout.addRow("Format:", self.format_combo)
-
-        self.quality_combo = QComboBox()
-        self.quality_combo.addItems(["128", "192", "256", "320"])
-        self.quality_combo.setCurrentText(self.parent.user_profile.get_audio_quality())
-        form_layout.addRow("Quality (kbps):", self.quality_combo)
-
-        self.playlist_checkbox = QCheckBox("Download Playlist")
-        form_layout.addRow(self.playlist_checkbox)
-
-        layout.addWidget(form_group)
+        self.queue_table = QTableWidget()
+        self.queue_table.setColumnCount(5)
+        self.queue_table.setHorizontalHeaderLabels(["URL", "Format", "Quality", "Status", "Progress"])
+        self.queue_table.setAlternatingRowColors(True)
+        self.queue_table.setSelectionBehavior(self.queue_table.SelectRows)
+        layout.addWidget(self.queue_table)
 
         button_row = QHBoxLayout()
-        download_btn = QPushButton("📥 Download")
-        download_btn.clicked.connect(self.start_download)
-        button_row.addWidget(download_btn)
+        start_btn = QPushButton("▶ Start Queue")
+        start_btn.clicked.connect(self.start_queue)
+        button_row.addWidget(start_btn)
 
-        queue_btn = QPushButton("🧺 Add to Queue")
-        queue_btn.clicked.connect(self.add_to_queue)
-        button_row.addWidget(queue_btn)
+        remove_btn = QPushButton("❌ Remove Selected")
+        remove_btn.clicked.connect(self.remove_selected)
+        button_row.addWidget(remove_btn)
 
-        clear_btn = QPushButton("🗑 Reset")
-        clear_btn.clicked.connect(self.clear_form)
+        clear_btn = QPushButton("🗑 Clear All")
+        clear_btn.clicked.connect(self.clear_queue)
         button_row.addWidget(clear_btn)
 
         layout.addLayout(button_row)
         layout.addStretch()
 
-    def get_task(self):
-        url = self.url_input.text().strip()
-        if not url:
-            self.parent.show_warning("Missing URL", "Please enter a valid URL.")
-            return None
+        self.refresh_queue()
 
-        return DownloadTask(
-            url=url,
-            output_path=self.parent.user_profile.get_download_path(),
-            audio_only=True,
-            audio_format=self.format_combo.currentText(),
-            audio_quality=self.quality_combo.currentText(),
-            playlist=self.playlist_checkbox.isChecked(),
-        )
+    def refresh_queue(self):
+        tasks = self.parent.download_queue
+        self.queue_table.setRowCount(len(tasks))
+        for row, task in enumerate(tasks):
+            self.queue_table.setItem(row, 0, QTableWidgetItem(task.url))
+            self.queue_table.setItem(row, 1, QTableWidgetItem(task.audio_format))
+            self.queue_table.setItem(row, 2, QTableWidgetItem(f"{task.audio_quality} kbps"))
+            self.queue_table.setItem(row, 3, QTableWidgetItem(task.status.upper()))
+            self.queue_table.setItem(row, 4, QTableWidgetItem(f"{task.progress}%"))
 
-    def start_download(self):
-        task = self.get_task()
-        if not task:
+    def start_queue(self):
+        if not self.parent.download_queue:
+            self.parent.show_warning("Empty Queue", "No downloads are queued.")
             return
-        self.parent.start_download_task(task, from_queue=False)
-        self.clear_form()
+        self.parent.process_queue()
 
-    def add_to_queue(self):
-        task = self.get_task()
-        if not task:
-            return
-        self.parent.download_queue.append(task)
-        self.parent.queue_page.refresh_queue()
-        self.parent.show_info("Added to Queue", "Your item was added to the download queue.")
-        self.clear_form()
+    def remove_selected(self):
+        row = self.queue_table.currentRow()
+        if row >= 0:
+            self.parent.download_queue.pop(row)
+            self.refresh_queue()
 
-    def clear_form(self):
-        self.url_input.clear()
-        self.format_combo.setCurrentText(self.parent.user_profile.get_audio_format())
-        self.quality_combo.setCurrentText(self.parent.user_profile.get_audio_quality())
-        self.playlist_checkbox.setChecked(False)
+    def clear_queue(self):
+        self.parent.download_queue.clear()
+        self.refresh_queue()
+

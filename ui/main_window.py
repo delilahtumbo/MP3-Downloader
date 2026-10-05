@@ -1,122 +1,87 @@
+import json
 import os
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont, QPixmap
-from PySide6.QtWidgets import (
-    QHBoxLayout,
-    QLabel,
-    QMainWindow,
-    QMessageBox,
-    QPushButton,
-    QProgressBar,
-    QStatusBar,
-    QTabWidget,
-    QVBoxLayout,
-    QWidget,
-)
-
-from core.profile import UserProfile
-from core.utils import set_circular_pixmap
-from ui.pages.download_page import DownloadPage
-from ui.pages.queue_page import QueuePage
-from ui.pages.settings_page import SettingsPage
-from ui.theme import DARK_STYLESHEET, LIGHT_STYLESHEET, PNG_COLORS
+from core.utils import get_data_dir, get_downloads_dir
 
 
-class MainWindow(QMainWindow):
+class UserProfile:
     def __init__(self):
-        super().__init__()
-        self.setWindowTitle("MP3 Downloader")
-        self.resize(1200, 800)
-        self.setMinimumSize(900, 650)
+        self.profile_file = os.path.join(get_data_dir(), "profile.json")
+        self.data = self.load_profile()
+        self._dirty = False
 
-        self.user_profile = UserProfile()
-        self.download_queue = []
-        self.init_ui()
-        self.apply_theme()
+    def load_profile(self):
+        if os.path.exists(self.profile_file):
+            try:
+                with open(self.profile_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                pass
+        return self.get_default_profile()
 
-    def init_ui(self):
-        central = QWidget()
-        self.setCentralWidget(central)
+    def get_default_profile(self):
+        return {
+            "username": "PNG User",
+            "profile_picture": "",
+            "download_path": get_downloads_dir(),
+            "audio_format": "mp3",
+            "audio_quality": "192",
+            "theme": "dark",
+            "auto_update": True,
+            "notifications": True,
+        }
 
-        layout = QVBoxLayout(central)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
+    def save_profile(self):
+        if not self._dirty:
+            return
+        os.makedirs(os.path.dirname(self.profile_file), exist_ok=True)
+        with open(self.profile_file, "w", encoding="utf-8") as f:
+            json.dump(self.data, f, indent=4)
+        self._dirty = False
 
-        top_bar = QWidget()
-        top_bar.setStyleSheet(f"background-color: {PNG_COLORS['dark_panel']}; border-bottom: 2px solid {PNG_COLORS['primary_red']};")
-        top_layout = QHBoxLayout(top_bar)
-        top_layout.setContentsMargins(18, 12, 18, 12)
+    def _set_value(self, key: str, value):
+        self.data[key] = value
+        self._dirty = True
+        self.save_profile()
 
-        profile_container = QHBoxLayout()
-        self.profile_picture = QLabel()
-        self.profile_picture.setFixedSize(48, 48)
-        self.profile_picture.setStyleSheet("border-radius: 24px;")
-        self.update_profile_picture()
-        profile_container.addWidget(self.profile_picture)
+    def set_username(self, username: str):
+        self._set_value("username", username or "PNG User")
 
-        self.username_label = QLabel(self.user_profile.get_username())
-        self.username_label.setFont(QFont("Arial", 12, QFont.Bold))
-        profile_container.addWidget(self.username_label)
+    def set_profile_picture(self, path: str):
+        self._set_value("profile_picture", path)
 
-        top_layout.addLayout(profile_container)
-        top_layout.addStretch()
+    def get_username(self):
+        return self.data.get("username", "PNG User")
 
-        self.theme_button = QPushButton("🌙 Dark")
-        self.theme_button.setFixedWidth(120)
-        self.theme_button.clicked.connect(self.toggle_theme)
-        top_layout.addWidget(self.theme_button)
+    def get_download_path(self):
+        return self.data.get("download_path", get_downloads_dir())
 
-        layout.addWidget(top_bar)
+    def set_download_path(self, path: str):
+        self._set_value("download_path", path)
 
-        self.tabs = QTabWidget()
-        self.tabs.setDocumentMode(True)
+    def get_audio_format(self):
+        return self.data.get("audio_format", "mp3")
 
-        self.download_page = DownloadPage(self)
-        self.queue_page = QueuePage(self)
-        self.settings_page = SettingsPage(self)
+    def set_audio_format(self, fmt: str):
+        self._set_value("audio_format", fmt)
 
-        self.tabs.addTab(self.download_page, "Download")
-        self.tabs.addTab(self.queue_page, "Queue")
-        self.tabs.addTab(self.settings_page, "Settings")
+    def get_audio_quality(self):
+        return self.data.get("audio_quality", "192")
 
-        layout.addWidget(self.tabs)
+    def set_audio_quality(self, quality: str):
+        self._set_value("audio_quality", quality)
 
-        self.status_bar = QStatusBar()
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setVisible(False)
-        self.progress_bar.setFixedWidth(300)
-        self.status_bar.addPermanentWidget(self.progress_bar)
-        self.status_bar.showMessage("Ready")
-        self.setStatusBar(self.status_bar)
+    def get_theme(self):
+        return self.data.get("theme", "dark")
 
-    def update_profile_picture(self):
-        pic_path = self.user_profile.data.get("profile_picture", "")
-        if pic_path and os.path.exists(pic_path):
-            pixmap = QPixmap(pic_path)
-        else:
-            pixmap = QPixmap(48, 48)
-            pixmap.fill(Qt.gray)
-        circular = set_circular_pixmap(pixmap, 48)
-        self.profile_picture.setPixmap(circular)
+    def set_theme(self, theme: str):
+        self._set_value("theme", theme)
 
-    def apply_theme(self):
-        theme = self.user_profile.get_theme()
-        if theme == "dark":
-            self.setStyleSheet(DARK_STYLESHEET)
-            self.theme_button.setText("🌙 Dark")
-        else:
-            self.setStyleSheet(LIGHT_STYLESHEET)
-            self.theme_button.setText("☀️ Light")
+    def is_profile_complete(self):
+        return bool(self.data.get("username", "").strip())
 
-    def toggle_theme(self):
-        theme = self.user_profile.get_theme()
-        new_theme = "light" if theme == "dark" else "dark"
-        self.user_profile.set_theme(new_theme)
-        self.apply_theme()
+    def update_profile(self, updates: dict):
+        self.data.update(updates)
+        self._dirty = True
+        self.save_profile()
 
-    def show_warning(self, title, message):
-        QMessageBox.warning(self, title, message)
-
-    def show_info(self, title, message):
-        QMessageBox.information(self, title, message)
