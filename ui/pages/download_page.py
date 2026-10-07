@@ -1,16 +1,23 @@
+import json
+import os
+
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
+    QComboBox,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
+    QMessageBox,
     QPushButton,
-    QTableWidget,
-    QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
 
+from core.downloader import DownloadTask
 
-class QueuePage(QWidget):
+
+class DownloadPage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
@@ -21,59 +28,55 @@ class QueuePage(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(18)
 
-        title = QLabel("Download Queue")
-        title.setFont(self.parent.font())
+        title = QLabel("Download")
+        title.setFont(QFont("Arial", 18, QFont.Bold))
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
 
-        self.queue_table = QTableWidget()
-        self.queue_table.setColumnCount(5)
-        self.queue_table.setHorizontalHeaderLabels(["URL", "Format", "Quality", "Status", "Progress"])
-        self.queue_table.setAlternatingRowColors(True)
-        self.queue_table.setSelectionBehavior(self.queue_table.SelectRows)
-        layout.addWidget(self.queue_table)
+        self.url_input = QLineEdit()
+        self.url_input.setPlaceholderText("Paste a YouTube or supported media URL here")
+        layout.addWidget(self.url_input)
 
-        button_row = QHBoxLayout()
-        start_btn = QPushButton("▶ Start Queue")
-        start_btn.clicked.connect(self.start_queue)
-        button_row.addWidget(start_btn)
+        format_row = QHBoxLayout()
+        format_label = QLabel("Format:")
+        self.format_combo = QComboBox()
+        self.format_combo.addItems(["mp3", "m4a", "wav", "aac", "flac", "opus", "vorbis"])
+        self.format_combo.setCurrentText(self.parent.user_profile.get_audio_format())
+        format_row.addWidget(format_label)
+        format_row.addWidget(self.format_combo)
+        layout.addLayout(format_row)
 
-        remove_btn = QPushButton("❌ Remove Selected")
-        remove_btn.clicked.connect(self.remove_selected)
-        button_row.addWidget(remove_btn)
+        quality_row = QHBoxLayout()
+        quality_label = QLabel("Quality:")
+        self.quality_combo = QComboBox()
+        self.quality_combo.addItems(["128", "192", "256", "320"])
+        self.quality_combo.setCurrentText(self.parent.user_profile.get_audio_quality())
+        quality_row.addWidget(quality_label)
+        quality_row.addWidget(self.quality_combo)
+        layout.addLayout(quality_row)
 
-        clear_btn = QPushButton("🗑 Clear All")
-        clear_btn.clicked.connect(self.clear_queue)
-        button_row.addWidget(clear_btn)
-
-        layout.addLayout(button_row)
+        add_btn = QPushButton("➕ Add to Queue")
+        add_btn.clicked.connect(self.add_to_queue)
+        layout.addWidget(add_btn)
         layout.addStretch()
 
-        self.refresh_queue()
-
-    def refresh_queue(self):
-        tasks = self.parent.download_queue
-        self.queue_table.setRowCount(len(tasks))
-        for row, task in enumerate(tasks):
-            self.queue_table.setItem(row, 0, QTableWidgetItem(task.url))
-            self.queue_table.setItem(row, 1, QTableWidgetItem(task.audio_format))
-            self.queue_table.setItem(row, 2, QTableWidgetItem(f"{task.audio_quality} kbps"))
-            self.queue_table.setItem(row, 3, QTableWidgetItem(task.status.upper()))
-            self.queue_table.setItem(row, 4, QTableWidgetItem(f"{task.progress}%"))
-
-    def start_queue(self):
-        if not self.parent.download_queue:
-            self.parent.show_warning("Empty Queue", "No downloads are queued.")
+    def add_to_queue(self):
+        url = self.url_input.text().strip()
+        if not url:
+            QMessageBox.warning(self, "Missing URL", "Please enter a valid URL.")
             return
-        self.parent.process_queue()
 
-    def remove_selected(self):
-        row = self.queue_table.currentRow()
-        if row >= 0:
-            self.parent.download_queue.pop(row)
-            self.refresh_queue()
+        task = DownloadTask(
+            url=url,
+            output_path=self.parent.user_profile.get_download_path(),
+            audio_format=self.format_combo.currentText(),
+            audio_quality=self.quality_combo.currentText(),
+            playlist=False,
+        )
+        self.parent.download_queue.append(task)
+        self.parent.queue_page.refresh_queue()
+        self.url_input.clear()
+        self.parent.show_info("Added", "Download task added to the queue.")
 
-    def clear_queue(self):
-        self.parent.download_queue.clear()
-        self.refresh_queue()
 
+QueuePage = None
