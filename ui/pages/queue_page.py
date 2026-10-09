@@ -1,5 +1,6 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -14,15 +15,29 @@ class QueuePage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
+        self.setObjectName("pageContainer")
         self.init_ui()
 
     def init_ui(self):
+        self.setStyleSheet("""
+            QWidget#pageContainer {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                                            stop:0 rgba(206,17,38,0.12),
+                                            stop:0.4 rgba(23,27,34,0.92),
+                                            stop:1 rgba(15,17,21,0.96));
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: 18px;
+            }
+            QLabel { color: #f4f4f4; }
+        """)
+
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setContentsMargins(18, 18, 18, 18)
         layout.setSpacing(18)
 
         title = QLabel("Download Queue")
         title.setFont(self.parent.font())
+        title.setStyleSheet("font-size: 22px; font-weight: 700; color: #ffffff; letter-spacing: 0.4px;")
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
 
@@ -30,13 +45,14 @@ class QueuePage(QWidget):
         self.queue_table.setColumnCount(5)
         self.queue_table.setHorizontalHeaderLabels(["URL", "Format", "Quality", "Status", "Progress"])
         self.queue_table.setAlternatingRowColors(True)
-        self.queue_table.setSelectionBehavior(self.queue_table.SelectRows)
+        self.queue_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.queue_table.setSelectionMode(QAbstractItemView.SingleSelection)
         layout.addWidget(self.queue_table)
 
         button_row = QHBoxLayout()
-        start_btn = QPushButton("▶ Start Queue")
-        start_btn.clicked.connect(self.start_queue)
-        button_row.addWidget(start_btn)
+        self.start_button = QPushButton("Download Now")
+        self.start_button.clicked.connect(self.start_queue)
+        button_row.addWidget(self.start_button)
 
         remove_btn = QPushButton("❌ Remove Selected")
         remove_btn.clicked.connect(self.remove_selected)

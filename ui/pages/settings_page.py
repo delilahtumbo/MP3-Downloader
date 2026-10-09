@@ -19,15 +19,31 @@ class SettingsPage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
+        self.setObjectName("pageContainer")
         self.init_ui()
 
     def init_ui(self):
+        self.setStyleSheet("""
+            QWidget#pageContainer {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                                            stop:0 rgba(206,17,38,0.12),
+                                            stop:0.4 rgba(23,27,34,0.92),
+                                            stop:1 rgba(15,17,21,0.96));
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: 18px;
+            }
+            QLabel { color: #f4f4f4; }
+            QGroupBox { border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; background-color: rgba(23,27,34,0.7); }
+            QGroupBox::title { color: #FCD116; }
+        """)
+
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setContentsMargins(18, 18, 18, 18)
         layout.setSpacing(18)
 
         title = QLabel("Settings")
         title.setFont(QFont("Arial", 18, QFont.Bold))
+        title.setStyleSheet("font-size: 22px; font-weight: 700; color: #ffffff; letter-spacing: 0.4px;")
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
 
@@ -59,9 +75,9 @@ class SettingsPage(QWidget):
         download_layout.addRow("Default format:", self.format_combo)
 
         self.quality_combo = QComboBox()
-        self.quality_combo.addItems(["128", "192", "256", "320"])
+        self.quality_combo.addItems(["128k", "192k", "320k"])
         self.quality_combo.setCurrentText(self.parent.user_profile.get_audio_quality())
-        download_layout.addRow("Default quality:", self.quality_combo)
+        download_layout.addRow("Default bitrate:", self.quality_combo)
 
         layout.addWidget(download_group)
 

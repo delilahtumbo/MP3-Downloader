@@ -1,6 +1,7 @@
 import json
 import os
 import shutil
+import subprocess
 from functools import lru_cache
 from pathlib import Path
 
@@ -10,8 +11,67 @@ import yt_dlp
 from core.utils import get_data_dir, get_downloads_dir
 
 
+def resolve_ffmpeg_path():
+    env_value = os.environ.get("FFMPEG_PATH")
+    candidates = []
+
+    if env_value:
+        candidates.append(env_value)
+
+    for path in os.environ.get("PATH", "").split(os.pathsep):
+        if path:
+            candidates.append(os.path.join(path, "ffmpeg.exe"))
+            candidates.append(os.path.join(path, "ffmpeg"))
+
+    candidates.extend([
+        r"C:\Users\thelm\AppData\Local\Microsoft\WinGet\Packages\BtbN.FFmpeg.GPL.9.0_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-n9.0.1-11-ge47273f4d9-win64-gpl-9.0\bin\ffmpeg.exe",
+        r"C:\Users\thelm\ffmpeg\ffmpeg.exe",
+        r"C:\Users\thelm\ffmpeg\bin\ffmpeg.exe",
+        r"C:\ffmpeg\bin\ffmpeg.exe",
+        r"C:\ffmpeg\ffmpeg.exe",
+        r"C:\Program Files\ffmpeg\bin\ffmpeg.exe",
+        r"C:\Program Files (x86)\ffmpeg\bin\ffmpeg.exe",
+    ])
+
+    seen = set()
+    for candidate in candidates:
+        cleaned = str(candidate).strip().strip('"')
+        if not cleaned or cleaned in seen:
+            continue
+        seen.add(cleaned)
+        try:
+            result = subprocess.run(
+                [cleaned, "-hide_banner", "-f", "lavfi", "-i", "sine=frequency=1000:duration=0.1", "-c:a", "libmp3lame", "-f", "null", "-"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=15,
+                check=False,
+            )
+            if result.returncode == 0:
+                return cleaned
+        except Exception:
+            continue
+
+    for candidate in candidates:
+        cleaned = str(candidate).strip().strip('"')
+        if cleaned and cleaned not in seen:
+            seen.add(cleaned)
+            if os.path.isfile(cleaned):
+                return cleaned
+    return None
+
+
 @lru_cache(maxsize=1)
 def ffmpeg_available():
+    ffmpeg_path = resolve_ffmpeg_path()
+    if ffmpeg_path:
+        os.environ["FFMPEG_PATH"] = ffmpeg_path
+        ffmpeg_dir = os.path.dirname(ffmpeg_path)
+        current_path = os.environ.get("PATH", "")
+        paths = current_path.split(os.pathsep) if current_path else []
+        if ffmpeg_dir not in paths:
+            os.environ["PATH"] = ffmpeg_dir + os.pathsep + current_path if current_path else ffmpeg_dir
+        return True
     return shutil.which("ffmpeg") is not None or bool(os.environ.get("FFMPEG_PATH"))
 
 
@@ -36,7 +96,7 @@ class UserProfile:
             "profile_picture": "",
             "download_path": get_downloads_dir(),
             "audio_format": "mp3",
-            "audio_quality": "192",
+            "audio_quality": "192k",
             "theme": "dark",
             "auto_update": True,
             "notifications": True,
@@ -77,16 +137,19 @@ class UserProfile:
         self._set_value("audio_format", fmt)
 
     def get_audio_quality(self):
-        return self.data.get("audio_quality", "192")
+        quality = str(self.data.get("audio_quality", "192k")).strip().lower()
+        if quality.endswith("k"):
+            return quality if quality in {"128k", "192k", "320k"} else "192k"
+        return f"{quality}k" if quality in {"128", "192", "320"} else "192k"
 
     def set_audio_quality(self, quality: str):
-        self._set_value("audio_quality", quality)
+        self._set_value("audio_quality", self.get_audio_quality() if not quality else str(quality).strip().lower())
 
     def get_theme(self):
-        return self.data.get("theme", "dark")
+        return "dark"
 
     def set_theme(self, theme: str):
-        self._set_value("theme", theme)
+        self._set_value("theme", "dark")
 
     def is_profile_complete(self):
         return bool(self.data.get("username", "").strip())
